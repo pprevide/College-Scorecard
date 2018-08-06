@@ -1,0 +1,1140 @@
+---
+title: "Final Project, CSC869"
+author: "Paul Previde"
+date: "May 23, 2017"
+output:
+  pdf_document
+    
+---
+
+```{r setup, include=FALSE}
+# DO NOT ALTER CODE IN THIS CHUNK
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+knitr::opts_knit$set(root.dir="/home/p/R")
+library(dplyr)
+library(ggplot2)
+```
+
+* * *
+
+
+```{r}
+# Given a R factor (categorical variable), this function returns its numeric value
+# This function is used in the chunks below to convert factors to continuous attributes
+as.numeric.factor <- function(x) {as.numeric(levels(x))[x]}
+```
+
+```{r}
+# Read the 1.3 GB csv file, gather some basic stats about the dataset:
+#   1. Number of independent and dependent variables
+#   2. Number of empty cells
+#   3. Number of cells in total
+#   4. Proportion of cells that have missing values
+
+
+scfull = read.csv("Scorecard.csv", stringsAsFactors = FALSE)
+dim(scfull)
+na_cells = sum(is.na(scfull))
+na_cells
+not_na_cells = sum(!is.na(scfull))
+not_na_cells
+na_cells + not_na_cells
+number_cells = dim(scfull)[1]*dim(scfull)[2]
+number_cells
+na_cells/number_cells
+mean(rowSums(is.na(scfull)))
+mean(colSums(is.na(scfull)))
+mean(rowSums(is.na(scfull)))/dim(scfull)[2]
+mean(colSums(is.na(scfull)))/dim(scfull)[1]
+sd(rowSums(is.na(scfull)))
+sd(colSums(is.na(scfull)))
+empty_cells = sum(scfull=="", na.rm = TRUE)
+empty_cells
+empty_cells/number_cells
+row_empty = rowSums(scfull=="", na.rm = TRUE)
+col_empty = colSums(scfull=="", na.rm = TRUE)
+mean_row_empty = mean(row_empty, na.rm = TRUE)
+mean_col_empty = mean(col_empty, na.rm = TRUE)
+sd_row_empty = sd(row_empty, na.rm = TRUE)
+sd_col_empty = sd(col_empty, na.rm = TRUE)
+mean_row_empty
+mean_col_empty
+sd_row_empty
+sd_col_empty
+mean_row_empty/dim(scfull)[2]
+mean_col_empty/dim(scfull)[1]
+
+```
+Next, prepare a subset of the full data frame for easier visualizations.
+
+```{r}
+rm(partialdf)
+partialdf = data.frame(
+  # earnings
+  median_earnings = scfull$md_earn_wne_p6, 
+  mean_earnings = scfull$mn_earn_wne_p6,
+  mean_earnings_male = scfull$mn_earn_wne_male1_p6,
+  mean_earnings_female = scfull$mn_earn_wne_male0_p6,
+  # year
+  year = scfull$Year,
+  # student qualifications
+  admit_rate = scfull$ADM_RATE,
+  sat_avg = scfull$SAT_AVG,
+  sat_math = scfull$SATMTMID,
+  sat_verbal = scfull$SATVRMID,
+  sat_writing = scfull$SATWRMID,
+  act_mid = scfull$ACTCMMID,
+  # student loans and debt
+  median_debt = scfull$DEBT_MDN,
+  grad_debt = scfull$GRAD_DEBT_MDN,  #completers only
+  lo_median_debt = scfull$LO_INC_DEBT_MDN,
+  med_median_debt = scfull$MD_INC_DEBT_MDN,
+  hi_median_debt = scfull$HI_INC_DEBT_MDN,
+  # what students are studying
+  percent_cs = scfull$PCIP11,
+  percent_bio = scfull$PCIP26,
+  percent_math = scfull$PCIP27,
+  percent_lit = scfull$PCIP23,
+  percent_business = scfull$PCIP52,
+  # parents' education level
+  firstgen = scfull$PAR_ED_PCT_1STGEN,
+  par_high = scfull$PAR_ED_PCT_HS,
+  par_post = scfull$PAR_ED_PCT_PS,
+  ### University information
+  # type of university
+  control = scfull$CONTROL,
+  # tuition and fees
+  tuition_instate = scfull$TUITIONFEE_IN,
+  tuition_outofstate = scfull$TUITIONFEE_OUT,
+  # average net price, inclusive of financial aid received by the students
+  price_public = scfull$NPT4_PUB,
+  price_private = scfull$NPT4_PRIV,
+  # average net price by family income
+  price_public_1 = scfull$NPT41_PUB,
+  price_public_2 = scfull$NPT42_PUB,
+  price_public_3 = scfull$NPT43_PUB,
+  price_public_4 = scfull$NPT44_PUB,
+  price_public_5 = scfull$NPT45_PUB,
+  price_private_1 = scfull$NPT41_PRIV,
+  price_private_2 = scfull$NPT42_PRIV,
+  price_private_3 = scfull$NPT43_PRIV,
+  price_private_4 = scfull$NPT44_PRIV,
+  price_private_5 = scfull$NPT45_PRIV,
+  # average net price for 0-48k family income
+  price_public_48 = scfull$NPT4_048_PUB,
+  price_private_48 = scfull$NPT4_048_PRIV,
+  # number of students by family income
+  num_public_1 = scfull$NUM41_PUB,
+  num_public_2 = scfull$NUM42_PUB,
+  num_public_3 = scfull$NUM43_PUB,
+  num_public_4 = scfull$NUM44_PUB,
+  num_public_5 = scfull$NUM45_PUB,
+  num_private_1 = scfull$NUM41_PRIV,
+  num_private_2 = scfull$NUM42_PRIV,
+  num_private_3 = scfull$NUM43_PRIV,
+  num_private_4 = scfull$NUM44_PRIV,
+  num_private_5 = scfull$NUM45_PRIV,
+  # number of students receiving aid
+  num_public = scfull$NUM4_PUB,
+  num_private = scfull$NUM4_PRIV,
+  # geographic regions
+  state = scfull$st_fips,
+  region = scfull$region,
+  # degree type awarded
+  degree = scfull$sch_deg,
+  # religious affiliation
+  religion = scfull$RELAFFIL,
+  # number of undergraduates
+  studentbody = scfull$UGDS,
+  # gender
+  female = scfull$female,
+  # race/national origin distribution
+  Caucasian = scfull$UGDS_WHITE,
+  African_American = scfull$UGDS_BLACK,
+  Hispanic = scfull$UGDS_HISP,
+  Asian = scfull$UGDS_ASIAN,
+  American_Indian = scfull$UGDS_AIAN,
+  Pacific_Islander = scfull$UGDS_NHPI,
+  Non_Residents = scfull$UGDS_NRA,
+  # institution name
+  name = scfull$INSTNM,
+  # faculty salaries and employment
+  Faculty_salary = scfull$AVGFACSAL,
+  Faculty_time = scfull$PFTFAC,
+  # online only
+  online = scfull$DISTANCEONLY
+  ) 
+```
+
+At this point, we have a 70-column data frame containing the variables of interest  for visualizations.
+```{r}
+# Get the relevant subset of the variables for this project.
+
+## Now do pre-processing on the data frames
+## Convert where needed to their numeric values
+## Clean up invalid values, like where a numeric variable holds a string
+options(warn = -1)
+partialdf$median_earnings = as.numeric.factor(partialdf$median_earnings)
+partialdf$mean_earnings = as.numeric.factor(partialdf$mean_earnings)
+partialdf$mean_earnings_male = as.numeric.factor(partialdf$mean_earnings_male)
+partialdf$mean_earnings_female = as.numeric.factor(partialdf$mean_earnings_female)
+partialdf$median_debt = as.numeric.factor(partialdf$median_debt)
+partialdf$grad_debt = as.numeric.factor(partialdf$grad_debt)
+partialdf$lo_median_debt = as.numeric.factor(partialdf$lo_median_debt)
+partialdf$med_median_debt = as.numeric.factor(partialdf$med_median_debt)
+partialdf$hi_median_debt = as.numeric.factor(partialdf$hi_median_debt)
+partialdf$firstgen = as.numeric.factor(partialdf$firstgen)
+partialdf$par_high = as.numeric.factor(partialdf$par_high)
+partialdf$par_post = as.numeric.factor(partialdf$par_post)
+partialdf$female = as.numeric.factor(partialdf$female)
+region_levels = c("", "Far West", "Great Lakes", "Mid East", "New England", "Outlying Areas", "Plains", "Rocky Mountains", "Southeast", "Southwest", "U.S. Service Schools")
+levels(partialdf$region) = region_levels
+partialdf$control = as.factor(partialdf$control)
+options(warn = 0)
+# Now replace empty values with NA
+partialdf[partialdf==""] = NA
+## Combine columns of loan recipients to reflect private/public school
+partialdf$num_combined = ifelse(is.na(partialdf$num_public), partialdf$num_private, partialdf$num_public)
+partialdf$price_combined = ifelse(is.na(partialdf$price_public), partialdf$price_private, partialdf$price_public)
+
+## Now discretize the dependent variable, earnings, so that we can do classifications
+## First, the four-class case
+rm(classifydf)
+classifydf = data.frame(earnings = partialdf$median_earnings*0.001,
+                       admit = partialdf$admit_rate,
+                       satmath = partialdf$sat_math,
+                       satverbal = partialdf$sat_verbal,
+                       tuitionin = partialdf$tuition_instate*0.001,
+                       tuitionout = partialdf$tuition_outofstate*0.001,
+                       studentbody = partialdf$studentbody,
+                       cs = partialdf$percent_cs,
+                       bio = partialdf$percent_bio,
+                       math = partialdf$percent_math,
+                       business = partialdf$percent_business,
+                       lit = partialdf$percent_lit
+                       )
+classifydf = na.omit(classifydf)
+quarts = unname(quantile(classifydf$earnings, na.rm = TRUE))
+mean(regressdf$earnings)
+sd(regressdf$earnings)
+#hist(classifydf$earnings, col=2, xlab = "Earnings (thousands of dollars)", main = "Histogram of median earnings", breaks = seq(0,140,5))
+classifydf$earnings = cut(classifydf$earnings, c(0, quarts[2], quarts[3], quarts[4], 200.0), labels = c("1", "2", "3", "4"))
+
+
+# Now the two-class case
+rm(twoclassdf)
+twoclassdf = data.frame(earnings = partialdf$median_earnings*0.001,
+                       admit = partialdf$admit_rate,
+                       satmath = partialdf$sat_math,
+                       satverbal = partialdf$sat_verbal,
+                       tuitionin = partialdf$tuition_instate*0.001,
+                       tuitionout = partialdf$tuition_outofstate*0.001,
+                       studentbody = partialdf$studentbody,
+                       cs = partialdf$percent_cs,
+                       bio = partialdf$percent_bio,
+                       math = partialdf$percent_math,
+                       business = partialdf$percent_business,
+                       lit = partialdf$percent_lit
+                       )
+twoclassdf = na.omit(twoclassdf)
+twoclassdf$earnings = cut(twoclassdf$earnings, c(0, median(twoclassdf$earnings), 200.0), labels = c("1", "2"))
+
+```
+
+Now proceed to the data analysis, first preparing the regression data frame.
+
+##### Part I: No imputation of missing values.
+
+```{r}
+## Data Analysis: regression and classification techniques
+
+## Regression
+cat("Technique: Linear Regression")
+library(boot)
+rm(regressdf)
+regressdf = data.frame(earnings = partialdf$median_earnings*0.001,
+                       admit = partialdf$admit_rate,
+                       satmath = partialdf$sat_math,
+                       satverbal = partialdf$sat_verbal,
+                       tuitionin = partialdf$tuition_instate*0.001,
+                       tuitionout = partialdf$tuition_outofstate*0.001,
+                       pricecombined = partialdf$price_combined*0.001,
+                       studentbody = partialdf$studentbody,
+                       cs = partialdf$percent_cs,
+                       bio = partialdf$percent_bio,
+                       math = partialdf$percent_math,
+                       business = partialdf$percent_business,
+                       lit = partialdf$percent_lit
+                       )
+regressdf = na.omit(regressdf)
+
+attach(regressdf, warn.conflicts = FALSE)
+lm_fit = lm(earnings~., data = regressdf)
+summary(lm_fit)
+
+
+## Next use 10-fold cross validation to estimate the test MSE
+glm_cvfit = glm(earnings~., data=regressdf)
+glm_err = cv.glm(regressdf, glm_cvfit, K=10)
+lm_err = glm_err$delta[1]
+
+#Large error, so try a smaller model:
+glm_cvfit_sm = glm(earnings~pricecombined+admit, data = regressdf)
+glm_err_sm = cv.glm(regressdf, glm_cvfit_sm, K=10)
+glm_err_sm$delta[1]
+
+#Smaller model does not outperform the larger one.  
+# Evidence that the relationship is complex.
+
+cat("Technique: Lasso")
+## Lasso regression
+library(glmnet)
+x = model.matrix(earnings~., data = regressdf)[,-1]
+y = earnings
+grid =10^seq(10, -10 , length =1000)
+lasso.mod = glmnet(x,y,alpha=1, lambda=grid)
+set.seed(1)
+train = sample(1:nrow(x), nrow(x)/2)
+test = (-train)
+y.test = y[test]
+cv.out = cv.glmnet(x[train,], y[train], alpha=1)
+plot(cv.out)
+bestlam = cv.out$lambda.min
+lasso_pred = predict(lasso.mod, s=bestlam, newx = x[test,])
+lasso_err = mean((lasso_pred - y.test)^2)
+
+# Now get the predictors that lasso reduced to 0:
+out = glmnet(x,y,alpha=1, lambda = grid)
+lasso_coef = predict(out, type="coefficients", s=bestlam*50)
+lasso_coef
+
+
+cat("Elasticnet Regression")
+## Elastic net regression
+library(glmnet)
+x = model.matrix(earnings~., data = regressdf)[,-1]
+y = earnings
+grid =10^seq(10, -10 , length =1000)
+lasso.mod = glmnet(x,y,alpha=0.5, lambda=grid)
+set.seed(1)
+train = sample(1:nrow(x), nrow(x)/2)
+test = (-train)
+y.test = y[test]
+cv.out = cv.glmnet(x[train,], y[train], alpha=1)
+plot(cv.out)
+bestlam = cv.out$lambda.min
+lasso_pred = predict(lasso.mod, s=bestlam, newx = x[test,])
+elastic_err = mean((lasso_pred - y.test)^2)
+# Now get the predictors that lasso reduced to 0:
+out = glmnet(x,y,alpha=0.5, lambda = grid)
+lasso_coef = predict(out, type="coefficients", s=bestlam)
+lasso_coef
+
+cat("Ridge regression")
+## Ridge regression
+x = model.matrix(earnings~., data = regressdf)[,-1]
+y = earnings
+grid =10^seq(10, -10 , length =1000)
+ridge.mod = glmnet(x,y,alpha=0, lambda=grid)
+set.seed(1)
+train = sample(1:nrow(x), nrow(x)/2)
+test = (-train)
+y.test = y[test]
+cv.out = cv.glmnet(x[train,], y[train], alpha=1)
+plot(cv.out)
+bestlam = cv.out$lambda.min
+ridge_pred = predict(ridge.mod, s=bestlam, newx = x[test,])
+ridge_err = mean((ridge_pred - y.test)^2)
+
+cat("Polynomial Regresson, squares of each term")
+# Polynomial regression
+plm_fit =  lm(earnings~poly(admit, 2)+
+                poly(satmath, 2)+
+                poly(satverbal, 2)+
+                poly(tuitionin, 2)+
+                poly(tuitionout, 2)+
+                poly(pricecombined, 2)+
+                poly(studentbody, 2)+
+                poly(cs, 2)+
+                poly(bio, 2)+
+                poly(math, 2)+
+                poly(business, 2)+
+                poly(lit, 2), data = regressdf)
+              
+summary(plm_fit)
+pglm_fit =  glm(earnings~poly(admit, 2)+
+                poly(satmath, 2)+
+                poly(satverbal, 2)+
+                poly(tuitionin, 2)+
+                poly(tuitionout, 2)+
+                poly(pricecombined, 2)+
+                poly(studentbody, 2)+
+                poly(cs, 2)+
+                poly(bio, 2)+
+                poly(math, 2)+
+                poly(business, 2)+
+                poly(lit, 2), data = regressdf)
+pglm_error = cv.glm(regressdf, pglm_fit, K=10)
+pglm_err = pglm_error$delta[1]
+
+# Now try up to the cubic terms of each independent variable
+cat("Polynomial Regression, cubic terms")
+plm_fit =  lm(earnings~poly(admit, 3)+
+                poly(satmath, 3)+
+                poly(satverbal, 3)+
+                poly(tuitionin, 3)+
+                poly(tuitionout, 3)+
+                poly(pricecombined, 3)+
+                poly(studentbody, 3)+
+                poly(cs, 3)+
+                poly(bio, 3)+
+                poly(math, 3)+
+                poly(business, 3)+
+                poly(lit, 3), data = regressdf)
+summary(plm_fit)
+pglm_fit =  glm(earnings~poly(admit, 3)+
+                poly(satmath, 3)+
+                poly(satverbal, 3)+
+                poly(tuitionin, 3)+
+                poly(tuitionout, 3)+
+                poly(pricecombined, 3)+
+                poly(studentbody, 3)+
+                poly(cs, 3)+
+                poly(bio, 3)+
+                poly(math, 3)+
+                poly(business, 3)+
+                poly(lit, 3), data = regressdf)
+pglmcub_error = cv.glm(regressdf, pglm_fit, K=10)
+pglmcub_err = pglmcub_error$delta[1]
+
+
+#Logistic regression using the categorical dependent variable in the two-class case
+cat("Logistic Regression")
+detach(regressdf)
+attach(twoclassdf, warn.conflicts = FALSE)
+library(e1071)
+glm_fit = glm(earnings~., data = twoclassdf, family = binomial)
+
+summary(glm_fit)
+glm_probs = predict(glm_fit, type = "response")
+glm_pred = rep("1", dim(twoclassdf)[1])
+glm_pred[glm_probs>0.5]="2"
+table(glm_pred, earnings)
+mean(glm_pred!=earnings)  #Training error rate.
+
+# Compare to test error rate using 10-fold cv:
+logreg_err_rates = rep(NA, 10)
+set.seed(100)
+for (i in 1:10) {
+  train_logreg = sample(1:nrow(twoclassdf), nrow(twoclassdf)/2)
+  train_logreg_set = twoclassdf[train_logreg,]
+  test_logreg_set = twoclassdf[(-train_logreg),]
+  glm_fit = glm(earnings~., data = train_logreg_set, family = binomial)
+  glm_probs = predict(glm_fit, test_logreg_set, type="response")
+  glm_pred = rep("1", dim(test_logreg_set)[1])
+  glm_pred[glm_probs>0.5]="2"
+  logreg_err_rates[i] = mean(glm_pred!=test_logreg_set$earnings)
+}
+logreg_err = mean(logreg_err_rates)
+
+cat("Naive Bayes classification")
+# Naive Bayes in the 2-class case:
+nb_err_rates = rep(NA,10)
+for (i in 1:10) {
+  train_logreg = sample(1:nrow(twoclassdf), nrow(twoclassdf)/2)
+  train_logreg_set = twoclassdf[train_logreg,]
+  test_logreg_set = twoclassdf[(-train_logreg),]
+  glm_fit = naiveBayes(earnings~., data = train_logreg_set)
+  glm_predics = predict(glm_fit, test_logreg_set, type="class")
+  nb_err_rates[i] = mean(glm_predics!=test_logreg_set$earnings)
+}
+nb2_err = mean(nb_err_rates)
+
+# Now the 4 class problem
+detach(twoclassdf)
+attach(classifydf, warn.conflicts = FALSE)
+nb_err_rates4 = rep(NA,10)
+for (i in 1:10) {
+  train_logreg4 = sample(1:nrow(classifydf), nrow(classifydf)/2)
+  train_logreg_set4 = classifydf[train_logreg4,]
+  test_logreg_set4 = classifydf[(-train_logreg4),]
+  glm_fit4 = naiveBayes(earnings~., data = train_logreg_set4)
+  glm_predics4 = predict(glm_fit4, test_logreg_set4, type="class")
+  nb_err_rates4[i] = mean(glm_predics4!=test_logreg_set4$earnings)
+}
+nb4_err = mean(nb_err_rates4)
+detach(classifydf)
+# Naive Bayes is higher
+```
+
+
+```{r}
+#classifiers: 
+library(MASS)
+cat("LDA and QDA classification")
+# LDA and QDA classifiers
+#First try the two-class problem
+attach(twoclassdf, warn.conflicts = FALSE)
+
+lda_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(twoclassdf), nrow(twoclassdf)/10)
+  train = twoclassdf[traininds,]
+  test = twoclassdf[(-traininds),]
+  lda_fit = lda(earnings~., data = train)
+  lda_pred = predict(lda_fit, test)
+  lda_results = lda_pred$class
+  lda_errors[i] = mean(lda_results!=test$earnings)
+}
+lda2_err = mean(lda_errors)
+lda2_err
+
+
+qda_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(twoclassdf), nrow(twoclassdf)/10)
+  train = twoclassdf[traininds,]
+  test = twoclassdf[(-traininds),]
+  qda_fit = qda(earnings~., data = train)
+  qda_pred = predict(qda_fit, test)
+  qda_results = qda_pred$class
+  qda_errors[i] = mean(qda_results!=test$earnings)
+}
+qda2_err = mean(qda_errors)
+
+## Now compare to the case of four output classes
+library(MASS)
+detach(twoclassdf)
+attach(classifydf, warn.conflicts = FALSE)
+lda_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(classifydf), nrow(classifydf)/10)
+  train = classifydf[traininds,]
+  test = classifydf[(-traininds),]
+  lda_fit = lda(earnings~., data = train)
+  lda_pred = predict(lda_fit, test)
+  lda_results = lda_pred$class
+  lda_errors[i] = mean(lda_results!=test$earnings)
+}
+lda4_err = mean(lda_errors)
+
+qda_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(classifydf), nrow(classifydf)/10)
+  train = classifydf[traininds,]
+  test = classifydf[(-traininds),]
+  qda_fit = qda(earnings~., data = train)
+  qda_pred = predict(qda_fit, test)
+  qda_results = qda_pred$class
+  qda_errors[i] = mean(qda_results!=test$earnings)
+}
+qda4_err = mean(qda_errors)
+
+cat("Bagging and Random Forest classification")
+## Now bagging and random forest
+library(randomForest)
+detach(classifydf)
+attach(twoclassdf, warn.conflicts = FALSE)
+#bagging test error by 10-fold cross validation
+bag_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(twoclassdf), nrow(twoclassdf)/10)
+  train = twoclassdf[traininds,]
+  test = twoclassdf[(-traininds),]
+  #bagging
+  rf_fit = randomForest(earnings~., data = train, importance = TRUE)
+  importance(rf_fit)
+  pred_rffit = predict(rf_fit, newdata=test)
+  bag_errors[i] = mean(pred_rffit!=test$earnings)
+}
+bag2_err = mean(bag_errors)
+
+#  Now random forest.  First, find optimal mtry:
+rf_errors = rep(NA, 9)
+for (mtr in 2:10) {
+  traininds = sample(1:nrow(twoclassdf), nrow(twoclassdf)/10)
+  train = twoclassdf[traininds,]
+  test = twoclassdf[(-traininds),]
+  rf_fit = randomForest(earnings~., data = train, importance = TRUE, mtry=mtr)
+  #importance(rf_fit)
+  pred_rffit = predict(rf_fit, newdata=test)
+  rf_errors[mtr-1] = mean(pred_rffit!=test$earnings)
+}
+lowest_mtry = which(rf_errors==min(rf_errors))
+# Now use the lowest value of number of trees in ten-fold cross validation:
+rf_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(twoclassdf), nrow(twoclassdf)/10)
+  train = twoclassdf[traininds,]
+  test = twoclassdf[(-traininds),]
+  rf_fit = randomForest(earnings~., data = train, importance = TRUE, mtry=lowest_mtry)
+  pred_rffit = predict(rf_fit, newdata=test)
+  rf_errors[i] = mean(pred_rffit!=test$earnings)
+}
+rf2_err = mean(rf_errors)
+varImpPlot(rf_fit)
+importance(rf_fit)
+
+# Now do the same for the multiple-class classification problem
+
+detach(twoclassdf)
+attach(classifydf, warn.conflicts = FALSE)
+
+#bagging test error by 10-fold cross validation
+bag_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(classifydf), nrow(classifydf)/10)
+  train = classifydf[traininds,]
+  test = classifydf[(-traininds),]
+  rf_fit = randomForest(earnings~., data = train, importance = TRUE)
+  #importance(rf_fit)
+  pred_rffit = predict(rf_fit, newdata=test)
+  bag_errors[i] = mean(pred_rffit!=test$earnings)
+}
+bag4_err = mean(bag_errors)
+
+#  Now random forest.  First, find optimal mtry:
+rf_errors = rep(NA, 9)
+for (mtr in 2:10) {
+  traininds = sample(1:nrow(classifydf), nrow(classifydf)/10)
+  train = classifydf[traininds,]
+  test = classifydf[(-traininds),]
+  rf_fit = randomForest(earnings~., data = train, importance = TRUE, mtry=mtr)
+  pred_rffit = predict(rf_fit, newdata=test)
+  rf_errors[mtr-1] = mean(pred_rffit!=test$earnings)
+}
+lowest_mtry = which(rf_errors==min(rf_errors))
+# Now use the lowest value of number of trees in ten-fold cross validation:
+rf_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(classifydf), nrow(classifydf)/10)
+  train = classifydf[traininds,]
+  test = classifydf[(-traininds),]
+  rf_fit = randomForest(earnings~., data = train, importance = TRUE, mtry=lowest_mtry)
+  pred_rffit = predict(rf_fit, newdata=test)
+  rf_errors[i] = mean(pred_rffit!=test$earnings)
+}
+rf4_err = mean(rf_errors)
+
+varImpPlot(rf_fit)
+importance(rf_fit)
+
+
+## Lastly we apply Adaboost and check the performance
+cat("Adaboost")
+##
+library(adabag)
+
+attach(twoclassdf)
+#adaboost_fit2 = boosting.cv(earnings~., data = twoclassdf, mfinal=20, v=10)
+ab2_error = adaboost_fit2$error
+
+# Now the four-class case
+attach(classifydf)
+adaboost_fit4 = boosting.cv(earnings~., data = classifydf, mfinal=20, v=10)
+ab4_error =adaboost_fit4$error
+
+# Lastly, print two data frames showing the results on the screen.
+
+Regression_Results = data.frame(
+  Technique = c("linear", "lasso", "elasticnet", "ridge", "polynomial^2", "polynomial^3"),
+  Test_MSE = c(lm_err, lasso_err, elastic_err, ridge_err, pglm_err, pglmcub_err)
+  )
+Classification_Results = data.frame(
+  Technique = c("naive Bayes", "LDA", "QDA", "bagging", "random forest", "Adaboost"),
+  Error_rate_2_classes= c(nb2_err ,lda2_err, qda2_err, bag2_err, rf2_err, ab2_error),
+  Error_rate_4_classes = c(nb4_err, lda4_err, qda4_err, bag4_err, rf4_err, ab4_error)
+  )
+print(Regression_Results, right = FALSE, row.names = FALSE)
+print(Classification_Results, right = FALSE, row.names = FALSE)
+```
+
+
+At this point in the script, the case of not imputing values is completed.
+
+
+##### Part 2: Impute missing values using variable mean (regression) and variable mean for each class after discretization (classification)
+
+```{r}
+## Now discretize the dependent variable, earnings, so that we can do classifications
+## First, the four-class case
+classifyimpute = data.frame(earnings = partialdf$median_earnings*0.001,
+                       admit = partialdf$admit_rate,
+                       satmath = partialdf$sat_math,
+                       satverbal = partialdf$sat_verbal,
+                       tuitionin = partialdf$tuition_instate*0.001,
+                       tuitionout = partialdf$tuition_outofstate*0.001,
+                       studentbody = partialdf$studentbody,
+                       cs = partialdf$percent_cs,
+                       bio = partialdf$percent_bio,
+                       math = partialdf$percent_math,
+                       business = partialdf$percent_business,
+                       lit = partialdf$percent_lit
+                       )
+quarts = unname(quantile(classifyimpute$earnings, na.rm = TRUE))
+hist(classifyimpute$earnings, col=2, xlab = "Earnings (thousands of dollars)", main = "Histogram of median earnings", breaks = seq(0,140,5))
+classifyimpute$earnings = cut(classifyimpute$earnings, c(0, quarts[2], quarts[3], quarts[4], 200.0), labels = c("1", "2", "3", "4"))
+
+# Now remove missing values for earnings, the dependent variable
+classifyimpute = classifyimpute[!is.na(classifyimpute$earnings), ] # keep only rows with earnings
+# For other variables, impute missing value as class mean for that variable
+colSums(is.na(classifyimpute))
+classes = c("1", "2", "3", "4")
+predictors = c("admit", "satmath", "satverbal", "tuitionin", "tuitionout", "studentbody", "cs", "bio", "math", "business", "lit")
+
+for (p in predictors) {
+  for (c in classes) {
+    classifyimpute[is.na(classifyimpute[,p]) & classifyimpute$earnings==c, p] = mean(classifyimpute[!is.na(classifyimpute[,p]) & classifyimpute$earnings==c, p])
+  }
+}
+colSums(is.na(classifyimpute))
+
+
+twoclassimpute = data.frame(earnings = partialdf$median_earnings*0.001,
+                       admit = partialdf$admit_rate,
+                       satmath = partialdf$sat_math,
+                       satverbal = partialdf$sat_verbal,
+                       tuitionin = partialdf$tuition_instate*0.001,
+                       tuitionout = partialdf$tuition_outofstate*0.001,
+                       studentbody = partialdf$studentbody,
+                       cs = partialdf$percent_cs,
+                       bio = partialdf$percent_bio,
+                       math = partialdf$percent_math,
+                       business = partialdf$percent_business,
+                       lit = partialdf$percent_lit
+                       )
+twoclassimpute$earnings = cut(twoclassimpute$earnings, c(0, median(twoclassimpute$earnings, na.rm = TRUE), 200.0), labels = c("1", "2"))
+
+twoclassimpute = twoclassimpute[!is.na(twoclassimpute$earnings), ]
+colSums(is.na(twoclassimpute))
+
+classes = c("1", "2")
+
+for (p in predictors) {
+  for (c in classes) {
+    twoclassimpute[is.na(twoclassimpute[,p]) & twoclassimpute$earnings==c, p] = mean(twoclassimpute[!is.na(twoclassimpute[,p]) & twoclassimpute$earnings==c, p])
+  }
+}
+colSums(is.na(twoclassimpute))
+
+```
+
+
+
+
+
+```{r}
+## Data Analysis: regression and classification techniques
+
+## Regression
+cat("Technique: Linear Regression")
+library(boot)
+detach(regressimpute)
+rm(regressimpute)
+regressimpute = data.frame(earnings = partialdf$median_earnings*0.001,
+                       admit = partialdf$admit_rate,
+                       satmath = partialdf$sat_math,
+                       satverbal = partialdf$sat_verbal,
+                       tuitionin = partialdf$tuition_instate*0.001,
+                       tuitionout = partialdf$tuition_outofstate*0.001,
+                       pricecombined = partialdf$price_combined*0.001,
+                       studentbody = partialdf$studentbody,
+                       cs = partialdf$percent_cs,
+                       bio = partialdf$percent_bio,
+                       math = partialdf$percent_math,
+                       business = partialdf$percent_business,
+                       lit = partialdf$percent_lit
+                       )
+regressimpute = regressimpute[!is.na(regressimpute$earnings), ] #do not try to impute earnings
+colSums(is.na(regressimpute))
+predictors = c("admit", "satmath", "satverbal", "tuitionin", "tuitionout", "pricecombined", "studentbody", "cs", "bio", "math", "business", "lit")
+for (p in predictors) {
+    regressimpute[is.na(regressimpute[,p]), p] = mean(regressimpute[!is.na(regressimpute[,p]), p])
+}
+colSums(is.na(regressimpute))
+
+
+
+attach(regressimpute, warn.conflicts = FALSE)
+lm_fit = lm(earnings~., data = regressimpute)
+summary(lm_fit)
+
+
+## Next use 10-fold cross validation to estimate the test MSE
+glm_cvfit = glm(earnings~., data=regressimpute)
+glm_err = cv.glm(regressimpute, glm_cvfit, K=10)
+lm_err = glm_err$delta[1]
+
+#Large error, so try a smaller model:
+glm_cvfit_sm = glm(earnings~pricecombined+admit, data = regressimpute)
+glm_err_sm = cv.glm(regressimpute, glm_cvfit_sm, K=10)
+glm_err_sm$delta[1]
+
+#Smaller model does not outperform the larger one.  
+# Evidence that the relationship is complex.
+
+cat("Technique: Lasso")
+## Lasso regression
+library(glmnet)
+x = model.matrix(earnings~., data = regressimpute)[,-1]
+y = earnings
+grid =10^seq(10, -10 , length =1000)
+lasso.mod = glmnet(x,y,alpha=1, lambda=grid)
+set.seed(1)
+train = sample(1:nrow(x), nrow(x)/2)
+test = (-train)
+y.test = y[test]
+cv.out = cv.glmnet(x[train,], y[train], alpha=1)
+plot(cv.out)
+bestlam = cv.out$lambda.min
+lasso_pred = predict(lasso.mod, s=bestlam, newx = x[test,])
+lasso_err = mean((lasso_pred - y.test)^2)
+
+# Now get the predictors that lasso reduced to 0:
+out = glmnet(x,y,alpha=1, lambda = grid)
+lasso_coef = predict(out, type="coefficients", s=bestlam)
+lasso_coef
+
+
+cat("Elasticnet Regression")
+## Elastic net regression
+library(glmnet)
+x = model.matrix(earnings~., data = regressimpute)[,-1]
+y = earnings
+grid =10^seq(10, -10 , length =1000)
+lasso.mod = glmnet(x,y,alpha=0.5, lambda=grid)
+set.seed(1)
+train = sample(1:nrow(x), nrow(x)/2)
+test = (-train)
+y.test = y[test]
+cv.out = cv.glmnet(x[train,], y[train], alpha=1)
+plot(cv.out)
+bestlam = cv.out$lambda.min
+lasso_pred = predict(lasso.mod, s=bestlam, newx = x[test,])
+elastic_err = mean((lasso_pred - y.test)^2)
+
+# Now get the predictors that elasticnet reduced to 0:
+out = glmnet(x,y,alpha=0.5, lambda = grid)
+lasso_coef = predict(out, type="coefficients", s=bestlam)
+lasso_coef
+
+cat("Ridge regression")
+## Ridge regression
+x = model.matrix(earnings~., data = regressimpute)[,-1]
+y = earnings
+grid =10^seq(10, -10 , length =1000)
+ridge.mod = glmnet(x,y,alpha=0, lambda=grid)
+set.seed(1)
+train = sample(1:nrow(x), nrow(x)/2)
+test = (-train)
+y.test = y[test]
+cv.out = cv.glmnet(x[train,], y[train], alpha=1)
+plot(cv.out)
+bestlam = cv.out$lambda.min
+ridge_pred = predict(ridge.mod, s=bestlam, newx = x[test,])
+ridge_err = mean((ridge_pred - y.test)^2)
+
+cat("Polynomial Regresson, squares of each term")
+# Polynomial regression
+plm_fit =  lm(earnings~poly(admit, 2)+
+                poly(satmath, 2)+
+                poly(satverbal, 2)+
+                poly(tuitionin, 2)+
+                poly(tuitionout, 2)+
+                poly(pricecombined, 2)+
+                poly(studentbody, 2)+
+                poly(cs, 2)+
+                poly(bio, 2)+
+                poly(math, 2)+
+                poly(business, 2)+
+                poly(lit, 2), data = regressimpute)
+              
+summary(plm_fit)
+pglm_fit =  glm(earnings~poly(admit, 2)+
+                poly(satmath, 2)+
+                poly(satverbal, 2)+
+                poly(tuitionin, 2)+
+                poly(tuitionout, 2)+
+                poly(pricecombined, 2)+
+                poly(studentbody, 2)+
+                poly(cs, 2)+
+                poly(bio, 2)+
+                poly(math, 2)+
+                poly(business, 2)+
+                poly(lit, 2), data = regressimpute)
+pglm_error = cv.glm(regressimpute, pglm_fit, K=10)
+pglm_err = pglm_error$delta[1]
+
+# Now try up to the cubic terms of each independent variable
+cat("Polynomial Regression, cubic terms")
+plm_fit =  lm(earnings~poly(admit, 3)+
+                poly(satmath, 3)+
+                poly(satverbal, 3)+
+                poly(tuitionin, 3)+
+                poly(tuitionout, 3)+
+                poly(pricecombined, 3)+
+                poly(studentbody, 3)+
+                poly(cs, 3)+
+                poly(bio, 3)+
+                poly(math, 3)+
+                poly(business, 3)+
+                poly(lit, 3), data = regressimpute)
+summary(plm_fit)
+pglm_fit =  glm(earnings~poly(admit, 3)+
+                poly(satmath, 3)+
+                poly(satverbal, 3)+
+                poly(tuitionin, 3)+
+                poly(tuitionout, 3)+
+                poly(pricecombined, 3)+
+                poly(studentbody, 3)+
+                poly(cs, 3)+
+                poly(bio, 3)+
+                poly(math, 3)+
+                poly(business, 3)+
+                poly(lit, 3), data = regressimpute)
+pglmcub_error = cv.glm(regressimpute, pglm_fit, K=10)
+pglmcub_err = pglmcub_error$delta[1]
+
+
+#Logistic regression using the categorical dependent variable in the two-class case
+cat("Logistic Regression")
+detach(regressimpute)
+attach(twoclassimpute, warn.conflicts = FALSE)
+library(e1071)
+glm_fit = glm(earnings~., data = twoclassimpute, family = binomial)
+
+summary(glm_fit)
+glm_probs = predict(glm_fit, type = "response")
+glm_pred = rep("1", dim(twoclassimpute)[1])
+glm_pred[glm_probs>0.5]="2"
+table(glm_pred, earnings)
+mean(glm_pred!=earnings)  #Training error rate.
+
+# Compare to test error rate using 10-fold cv:
+logreg_err_rates = rep(NA, 10)
+set.seed(100)
+for (i in 1:10) {
+  train_logreg = sample(1:nrow(twoclassimpute), nrow(twoclassimpute)/2)
+  train_logreg_set = twoclassimpute[train_logreg,]
+  test_logreg_set = twoclassimpute[(-train_logreg),]
+  glm_fit = glm(earnings~., data = train_logreg_set, family = binomial)
+  glm_probs = predict(glm_fit, test_logreg_set, type="response")
+  glm_pred = rep("1", dim(test_logreg_set)[1])
+  glm_pred[glm_probs>0.5]="2"
+  logreg_err_rates[i] = mean(glm_pred!=test_logreg_set$earnings)
+}
+logreg_err = mean(logreg_err_rates)
+
+cat("Naive Bayes classification")
+# Naive Bayes in the 2-class case:
+nb_err_rates = rep(NA,10)
+for (i in 1:10) {
+  train_logreg = sample(1:nrow(twoclassimpute), nrow(twoclassimpute)/2)
+  train_logreg_set = twoclassimpute[train_logreg,]
+  test_logreg_set = twoclassimpute[(-train_logreg),]
+  glm_fit = naiveBayes(earnings~., data = train_logreg_set)
+  glm_predics = predict(glm_fit, test_logreg_set, type="class")
+  nb_err_rates[i] = mean(glm_predics!=test_logreg_set$earnings)
+}
+nb2_err = mean(nb_err_rates)
+
+# Now the 4 class problem
+detach(twoclassimpute)
+attach(classifyimpute, warn.conflicts = FALSE)
+nb_err_rates4 = rep(NA,10)
+for (i in 1:10) {
+  train_logreg4 = sample(1:nrow(classifyimpute), nrow(classifyimpute)/2)
+  train_logreg_set4 = classifyimpute[train_logreg4,]
+  test_logreg_set4 = classifyimpute[(-train_logreg4),]
+  glm_fit4 = naiveBayes(earnings~., data = train_logreg_set4)
+  glm_predics4 = predict(glm_fit4, test_logreg_set4, type="class")
+  nb_err_rates4[i] = mean(glm_predics4!=test_logreg_set4$earnings)
+}
+nb4_err = mean(nb_err_rates4)
+nb4_err
+detach(classifyimpute)
+# Naive Bayes is higher
+```
+
+
+```{r}
+#classifiers: 
+library(MASS)
+cat("LDA and QDA classification")
+# LDA and QDA classifiers
+#First try the two-class problem
+attach(twoclassimpute, warn.conflicts = FALSE)
+
+lda_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(twoclassimpute), nrow(twoclassimpute)/10)
+  train = twoclassimpute[traininds,]
+  test = twoclassimpute[(-traininds),]
+  lda_fit = lda(earnings~., data = train)
+  lda_pred = predict(lda_fit, test)
+  lda_results = lda_pred$class
+  lda_errors[i] = mean(lda_results!=test$earnings)
+}
+lda2_err = mean(lda_errors)
+
+
+qda_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(twoclassimpute), nrow(twoclassimpute)/10)
+  train = twoclassimpute[traininds,]
+  test = twoclassimpute[(-traininds),]
+  qda_fit = qda(earnings~., data = train)
+  qda_pred = predict(qda_fit, test)
+  qda_results = qda_pred$class
+  qda_errors[i] = mean(qda_results!=test$earnings)
+}
+qda2_err = mean(qda_errors)
+
+## Now compare to the case of four output classes
+library(MASS)
+detach(twoclassimpute)
+attach(classifyimpute, warn.conflicts = FALSE)
+lda_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(classifyimpute), nrow(classifyimpute)/10)
+  train = classifyimpute[traininds,]
+  test = classifyimpute[(-traininds),]
+  lda_fit = lda(earnings~., data = train)
+  lda_pred = predict(lda_fit, test)
+  lda_results = lda_pred$class
+  lda_errors[i] = mean(lda_results!=test$earnings)
+}
+lda4_err = mean(lda_errors)
+
+qda_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(classifyimpute), nrow(classifyimpute)/10)
+  train = classifyimpute[traininds,]
+  test = classifyimpute[(-traininds),]
+  qda_fit = qda(earnings~., data = train)
+  qda_pred = predict(qda_fit, test)
+  qda_results = qda_pred$class
+  qda_errors[i] = mean(qda_results!=test$earnings)
+}
+qda4_err = mean(qda_errors)
+
+cat("Bagging and Random Forest classification")
+## Now bagging and random forest
+library(randomForest)
+detach(classifyimpute)
+attach(twoclassimpute, warn.conflicts = FALSE)
+#bagging test error by 10-fold cross validation
+bag_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(twoclassimpute), nrow(twoclassimpute)/10)
+  train = twoclassimpute[traininds,]
+  test = twoclassimpute[(-traininds),]
+  #bagging
+  rf_fit = randomForest(earnings~., data = train, importance = TRUE)
+  importance(rf_fit)
+  pred_rffit = predict(rf_fit, newdata=test)
+  bag_errors[i] = mean(pred_rffit!=test$earnings)
+}
+bag2_err = mean(bag_errors)
+
+#  Now random forest.  First, find optimal mtry:
+rf_errors = rep(NA, 9)
+for (mtr in 2:10) {
+  traininds = sample(1:nrow(twoclassimpute), nrow(twoclassimpute)/10)
+  train = twoclassimpute[traininds,]
+  test = twoclassimpute[(-traininds),]
+  rf_fit = randomForest(earnings~., data = train, importance = TRUE, mtry=mtr)
+  pred_rffit = predict(rf_fit, newdata=test)
+  rf_errors[mtr-1] = mean(pred_rffit!=test$earnings)
+}
+
+lowest_mtry = which(rf_errors==min(rf_errors))
+
+# Now use the lowest value of number of trees in ten-fold cross validation:
+rf_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(twoclassimpute), nrow(twoclassimpute)/10)
+  train = twoclassimpute[traininds,]
+  test = twoclassimpute[(-traininds),]
+  rf_fit = randomForest(earnings~., data = train, importance = TRUE, mtry=lowest_mtry)
+  pred_rffit = predict(rf_fit, newdata=test)
+  rf_errors[i] = mean(pred_rffit!=test$earnings)
+}
+rf2_err = mean(rf_errors)
+
+
+# Now do the same for the multiple-class classification problem
+
+detach(twoclassimpute)
+attach(classifyimpute, warn.conflicts = FALSE)
+
+#bagging test error by 10-fold cross validation
+bag_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(classifyimpute), nrow(classifyimpute)/10)
+  train = classifyimpute[traininds,]
+  test = classifyimpute[(-traininds),]
+  rf_fit = randomForest(earnings~., data = train, importance = TRUE)
+  pred_rffit = predict(rf_fit, newdata=test)
+  bag_errors[i] = mean(pred_rffit!=test$earnings)
+}
+bag4_err = mean(bag_errors)
+
+#  Now random forest.  First, find optimal mtry:
+rf_errors = rep(NA, 9)
+for (mtr in 2:10) {
+  traininds = sample(1:nrow(classifyimpute), nrow(classifyimpute)/10)
+  train = classifyimpute[traininds,]
+  test = classifyimpute[(-traininds),]
+  rf_fit = randomForest(earnings~., data = train, importance = TRUE, mtry=mtr)
+  #importance(rf_fit)
+  pred_rffit = predict(rf_fit, newdata=test)
+  rf_errors[mtr-1] = mean(pred_rffit!=test$earnings)
+}
+lowest_mtry = which(rf_errors==min(rf_errors))
+
+# Now use the lowest value of number of trees in ten-fold cross validation:
+rf_errors = rep(NA, 10)
+for (i in 1:10) {
+  traininds = sample(1:nrow(classifyimpute), nrow(classifyimpute)/10)
+  train = classifyimpute[traininds,]
+  test = classifyimpute[(-traininds),]
+  rf_fit = randomForest(earnings~., data = train, importance = TRUE, mtry=lowest_mtry)
+  pred_rffit = predict(rf_fit, newdata=test)
+  rf_errors[i] = mean(pred_rffit!=test$earnings)
+}
+rf4_err = mean(rf_errors)
+
+varImpPlot(rf_fit)
+importance(rf_fit)
+
+
+## Lastly we apply Adaboost and check the performance
+cat("Adaboost")
+##
+library(adabag)
+
+attach(twoclassimpute)
+adaboost_fit2 = boosting.cv(earnings~., data = twoclassimpute, mfinal=20, v=10)
+ab2_error_impute = adaboost_fit2$error
+
+# Now the four-class case
+attach(classifyimpute)
+adaboost_fit4 = boosting.cv(earnings~., data = classifyimpute, mfinal=20, v=10)
+ab4_error_impute_ =adaboost_fit4$error
+
+# Lastly, print two data frames showing the results on the screen.
+
+Regression_Results_impute = data.frame(
+  Technique = c("linear", "lasso", "elasticnet", "ridge", "polynomial^2", "polynomial^3"),
+  Test_MSE = c(lm_err, lasso_err, elastic_err, ridge_err, pglm_err, pglmcub_err)
+  )
+Classification_Results_impute = data.frame(
+  Technique = c("naive Bayes", "LDA", "QDA", "bagging", "random forest", "Adaboost"),
+  Error_rate_2_classes= c(nb2_err ,lda2_err, qda2_err, bag2_err, rf2_err, ab2_error_impute),
+  Error_rate_4_classes = c(nb4_err, lda4_err, qda4_err, bag4_err, rf4_err, ab4_error_impute)
+  )
+print(Regression_Results_impute, right = FALSE, row.names = FALSE)
+print(Classification_Results_impute, right = FALSE, row.names = FALSE)
+```
+
