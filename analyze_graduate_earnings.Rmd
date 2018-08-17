@@ -7,10 +7,9 @@ output:
     
 ---
 
-```{r setup, include=FALSE}
-# DO NOT ALTER CODE IN THIS CHUNK
-knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
-knitr::opts_knit$set(root.dir="/home/p/R")
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_knit$set(root.dir = "/home/p/R")
 library(dplyr)
 library(ggplot2)
 ```
@@ -51,8 +50,8 @@ sd(colSums(is.na(scfull)))
 empty_cells <- sum(scfull == "", na.rm = TRUE)
 empty_cells
 empty_cells/number_cells
-row_empty <- rowSums(scfull=="", na.rm = TRUE)
-col_empty <- colSums(scfull=="", na.rm = TRUE)
+row_empty <- rowSums(scfull == "", na.rm = TRUE)
+col_empty <- colSums(scfull == "", na.rm = TRUE)
 mean_row_empty <- mean(row_empty, na.rm = TRUE)
 mean_col_empty <- mean(col_empty, na.rm = TRUE)
 sd_row_empty <- sd(row_empty, na.rm = TRUE)
@@ -274,13 +273,13 @@ summary(lm_fit)
 
 
 ## Next use 10-fold cross validation to estimate the test MSE
-glm_cvfit <- glm(earnings~., data=regressdf)
-glm_err <- cv.glm(regressdf, glm_cvfit, K=10)
+glm_cvfit <- glm(earnings~., data = regressdf)
+glm_err <- cv.glm(regressdf, glm_cvfit, K = 10)
 lm_err <- glm_err$delta[1]
 
 #Large error, so try a smaller model:
 glm_cvfit_sm <- glm(earnings~pricecombined+admit, data = regressdf)
-glm_err_sm <- cv.glm(regressdf, glm_cvfit_sm, K=10)
+glm_err_sm <- cv.glm(regressdf, glm_cvfit_sm, K = 10)
 glm_err_sm$delta[1]
 
 #Smaller model does not outperform the larger one.  
@@ -291,21 +290,21 @@ cat("Technique: Lasso")
 library(glmnet)
 x <- model.matrix(earnings~., data = regressdf)[,-1]
 y <- earnings
-grid <- 10^seq(10, -10 , length =1000)
-lasso.mod <- glmnet(x,y,alpha=1, lambda=grid)
+grid <- 10^seq(10, -10, length = 1000)
+lasso.mod <- glmnet(x,y,alpha=1, lambda = grid)
 set.seed(1)
 train <- sample(1:nrow(x), nrow(x)/2)
 test <- (-train)
 y.test <- y[test]
-cv.out <- cv.glmnet(x[train,], y[train], alpha=1)
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 1)
 plot(cv.out)
 bestlam <- cv.out$lambda.min
-lasso_pred <- predict(lasso.mod, s=bestlam, newx = x[test,])
+lasso_pred <- predict(lasso.mod, s=bestlam, newx = x[test, ])
 lasso_err <- mean((lasso_pred - y.test)^2)
 
 # Now get the predictors that lasso reduced to 0:
 out <- glmnet(x,y,alpha=1, lambda = grid)
-lasso_coef <- predict(out, type="coefficients", s=bestlam*50)
+lasso_coef <- predict(out, type="coefficients", s = bestlam*50)
 lasso_coef
 
 
@@ -314,36 +313,36 @@ cat("Elasticnet Regression")
 library(glmnet)
 x <- model.matrix(earnings~., data = regressdf)[,-1]
 y <- earnings
-grid <- 10^seq(10, -10 , length =1000)
-lasso.mod <- glmnet(x,y,alpha=0.5, lambda=grid)
+grid <- 10^seq(10, -10, length = 1000)
+lasso.mod <- glmnet(x,y,alpha = 0.5, lambda = grid)
 set.seed(1)
 train <- sample(1:nrow(x), nrow(x)/2)
 test <- (-train)
 y.test <- y[test]
-cv.out <- cv.glmnet(x[train,], y[train], alpha=1)
+cv.out <- cv.glmnet(x[train, ], y[train], alpha=1)
 plot(cv.out)
 bestlam <- cv.out$lambda.min
-lasso_pred <- predict(lasso.mod, s=bestlam, newx = x[test,])
+lasso_pred <- predict(lasso.mod, s=bestlam, newx = x[test, ])
 elastic_err <- mean((lasso_pred - y.test)^2)
 # Now get the predictors that lasso reduced to 0:
-out <- glmnet(x,y,alpha=0.5, lambda = grid)
-lasso_coef <- predict(out, type="coefficients", s=bestlam)
+out <- glmnet(x,y,alpha = 0.5, lambda = grid)
+lasso_coef <- predict(out, type = "coefficients", s = bestlam)
 lasso_coef
 
 cat("Ridge regression")
 ## Ridge regression
 x <- model.matrix(earnings~., data = regressdf)[,-1]
 y <- earnings
-grid <- 10^seq(10, -10 , length =1000)
-ridge.mod <- glmnet(x,y,alpha=0, lambda=grid)
+grid <- 10^seq(10, -10, length = 1000)
+ridge.mod <- glmnet(x,y,alpha = 0, lambda = grid)
 set.seed(1)
 train <- sample(1:nrow(x), nrow(x)/2)
 test <- (-train)
 y.test <- y[test]
-cv.out <- cv.glmnet(x[train,], y[train], alpha=1)
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 1)
 plot(cv.out)
 bestlam <- cv.out$lambda.min
-ridge_pred <- predict(ridge.mod, s=bestlam, newx = x[test,])
+ridge_pred <- predict(ridge.mod, s = bestlam, newx = x[test, ])
 ridge_err <- mean((ridge_pred - y.test)^2)
 
 cat("Polynomial Regresson, squares of each term")
@@ -374,7 +373,7 @@ pglm_fit <-  glm(earnings~poly(admit, 2)+
                 poly(math, 2)+
                 poly(business, 2)+
                 poly(lit, 2), data = regressdf)
-pglm_error <- cv.glm(regressdf, pglm_fit, K=10)
+pglm_error <- cv.glm(regressdf, pglm_fit, K = 10)
 pglm_err <- pglm_error$delta[1]
 
 # Now try up to the cubic terms of each independent variable
@@ -404,7 +403,7 @@ pglm_fit <- glm(earnings~poly(admit, 3)+
                 poly(math, 3)+
                 poly(business, 3)+
                 poly(lit, 3), data = regressdf)
-pglmcub_error <- cv.glm(regressdf, pglm_fit, K=10)
+pglmcub_error <- cv.glm(regressdf, pglm_fit, K = 10)
 pglmcub_err <- pglmcub_error$delta[1]
 
 
@@ -418,7 +417,7 @@ glm_fit <- glm(earnings~., data = twoclassdf, family = binomial)
 summary(glm_fit)
 glm_probs <- predict(glm_fit, type = "response")
 glm_pred <- rep("1", dim(twoclassdf)[1])
-glm_pred[glm_probs>0.5]="2"
+glm_pred[glm_probs>0.5] = "2"
 table(glm_pred, earnings)
 mean(glm_pred!=earnings)  #Training error rate.
 
@@ -427,8 +426,8 @@ logreg_err_rates <- rep(NA, 10)
 set.seed(100)
 for (i in 1:10) {
   train_logreg <- sample(1:nrow(twoclassdf), nrow(twoclassdf)/2)
-  train_logreg_set <- twoclassdf[train_logreg,]
-  test_logreg_set <- twoclassdf[(-train_logreg),]
+  train_logreg_set <- twoclassdf[train_logreg, ]
+  test_logreg_set <- twoclassdf[(-train_logreg), ]
   glm_fit <- glm(earnings~., data = train_logreg_set, family = binomial)
   glm_probs <- predict(glm_fit, test_logreg_set, type="response")
   glm_pred <- rep("1", dim(test_logreg_set)[1])
@@ -442,8 +441,8 @@ cat("Naive Bayes classification")
 nb_err_rates <- rep(NA,10)
 for (i in 1:10) {
   train_logreg <- sample(1:nrow(twoclassdf), nrow(twoclassdf)/2)
-  train_logreg_set <- twoclassdf[train_logreg,]
-  test_logreg_set <- twoclassdf[(-train_logreg),]
+  train_logreg_set <- twoclassdf[train_logreg, ]
+  test_logreg_set <- twoclassdf[(-train_logreg), ]
   glm_fit <- naiveBayes(earnings~., data = train_logreg_set)
   glm_predics <- predict(glm_fit, test_logreg_set, type="class")
   nb_err_rates[i] <- mean(glm_predics!=test_logreg_set$earnings)
@@ -456,10 +455,10 @@ attach(classifydf, warn.conflicts = FALSE)
 nb_err_rates4 <- rep(NA,10)
 for (i in 1:10) {
   train_logreg4 <- sample(1:nrow(classifydf), nrow(classifydf)/2)
-  train_logreg_set4 <- classifydf[train_logreg4,]
-  test_logreg_set4 <- classifydf[(-train_logreg4),]
+  train_logreg_set4 <- classifydf[train_logreg4, ]
+  test_logreg_set4 <- classifydf[(-train_logreg4), ]
   glm_fit4 <- naiveBayes(earnings~., data = train_logreg_set4)
-  glm_predics4 <- predict(glm_fit4, test_logreg_set4, type="class")
+  glm_predics4 <- predict(glm_fit4, test_logreg_set4, type = "class")
   nb_err_rates4[i] <- mean(glm_predics4!=test_logreg_set4$earnings)
 }
 nb4_err <- mean(nb_err_rates4)
@@ -479,12 +478,12 @@ attach(twoclassdf, warn.conflicts = FALSE)
 lda_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(twoclassdf), nrow(twoclassdf)/10)
-  train <- twoclassdf[traininds,]
-  test <- twoclassdf[(-traininds),]
+  train <- twoclassdf[traininds, ]
+  test <- twoclassdf[(-traininds), ]
   lda_fit <- lda(earnings~., data = train)
   lda_pred <- predict(lda_fit, test)
   lda_results <- lda_pred$class
-  lda_errors[i] <- mean(lda_results!=test$earnings)
+  lda_errors[i] <- mean(lda_results  !=  test$earnings)
 }
 lda2_err <- mean(lda_errors)
 lda2_err
@@ -493,12 +492,12 @@ lda2_err
 qda_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(twoclassdf), nrow(twoclassdf)/10)
-  train <- twoclassdf[traininds,]
-  test <- twoclassdf[(-traininds),]
+  train <- twoclassdf[traininds, ]
+  test <- twoclassdf[(-traininds), ]
   qda_fit <- qda(earnings~., data = train)
   qda_pred <- predict(qda_fit, test)
   qda_results <- qda_pred$class
-  qda_errors[i] <- mean(qda_results!=test$earnings)
+  qda_errors[i] <- mean(qda_results  !=  test$earnings)
 }
 qda2_err <- mean(qda_errors)
 
@@ -509,24 +508,24 @@ attach(classifydf, warn.conflicts = FALSE)
 lda_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(classifydf), nrow(classifydf)/10)
-  train <- classifydf[traininds,]
-  test <- classifydf[(-traininds),]
+  train <- classifydf[traininds, ]
+  test <- classifydf[(-traininds), ]
   lda_fit <- lda(earnings~., data = train)
   lda_pred <- predict(lda_fit, test)
   lda_results <- lda_pred$class
-  lda_errors[i] <- mean(lda_results!=test$earnings)
+  lda_errors[i] <- mean(lda_results != test$earnings)
 }
 lda4_err <- mean(lda_errors)
 
 qda_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(classifydf), nrow(classifydf)/10)
-  train <- classifydf[traininds,]
-  test <- classifydf[(-traininds),]
+  train <- classifydf[traininds, ]
+  test <- classifydf[(-traininds), ]
   qda_fit <- qda(earnings~., data = train)
   qda_pred <- predict(qda_fit, test)
   qda_results <- qda_pred$class
-  qda_errors[i] <- mean(qda_results!=test$earnings)
+  qda_errors[i] <- mean(qda_results != test$earnings)
 }
 qda4_err <- mean(qda_errors)
 
@@ -539,13 +538,13 @@ attach(twoclassdf, warn.conflicts = FALSE)
 bag_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(twoclassdf), nrow(twoclassdf)/10)
-  train <- twoclassdf[traininds,]
-  test <- twoclassdf[(-traininds),]
+  train <- twoclassdf[traininds, ]
+  test <- twoclassdf[(-traininds), ]
   #bagging
   rf_fit <- randomForest(earnings~., data = train, importance = TRUE)
   importance(rf_fit)
   pred_rffit <- predict(rf_fit, newdata=test)
-  bag_errors[i] <- mean(pred_rffit!=test$earnings)
+  bag_errors[i] <- mean(pred_rffit != test$earnings)
 }
 bag2_err <- mean(bag_errors)
 
@@ -553,23 +552,23 @@ bag2_err <- mean(bag_errors)
 rf_errors <- rep(NA, 9)
 for (mtr in 2:10) {
   traininds <- sample(1:nrow(twoclassdf), nrow(twoclassdf)/10)
-  train <- twoclassdf[traininds,]
-  test <- twoclassdf[(-traininds),]
+  train <- twoclassdf[traininds, ]
+  test <- twoclassdf[(-traininds), ]
   rf_fit <- randomForest(earnings~., data = train, importance = TRUE, mtry=mtr)
   #importance(rf_fit)
-  pred_rffit <- predict(rf_fit, newdata=test)
-  rf_errors[mtr-1] <- mean(pred_rffit!=test$earnings)
+  pred_rffit <- predict(rf_fit, newdata = test)
+  rf_errors[mtr-1] <- mean(pred_rffit != test$earnings)
 }
-lowest_mtry <- which(rf_errors==min(rf_errors))
+lowest_mtry <- which(rf_errors == min(rf_errors))
 # Now use the lowest value of number of trees in ten-fold cross validation:
 rf_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(twoclassdf), nrow(twoclassdf)/10)
-  train <- twoclassdf[traininds,]
-  test <- twoclassdf[(-traininds),]
-  rf_fit <- randomForest(earnings~., data = train, importance = TRUE, mtry=lowest_mtry)
-  pred_rffit <- predict(rf_fit, newdata=test)
-  rf_errors[i] <- mean(pred_rffit!=test$earnings)
+  train <- twoclassdf[traininds, ]
+  test <- twoclassdf[(-traininds), ]
+  rf_fit <- randomForest(earnings~., data = train, importance = TRUE, mtry = lowest_mtry)
+  pred_rffit <- predict(rf_fit, newdata = test)
+  rf_errors[i] <- mean(pred_rffit != test$earnings)
 }
 rf2_err <- mean(rf_errors)
 varImpPlot(rf_fit)
@@ -584,12 +583,12 @@ attach(classifydf, warn.conflicts = FALSE)
 bag_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(classifydf), nrow(classifydf)/10)
-  train <- classifydf[traininds,]
-  test <- classifydf[(-traininds),]
+  train <- classifydf[traininds, ]
+  test <- classifydf[(-traininds), ]
   rf_fit <- randomForest(earnings~., data = train, importance = TRUE)
   #importance(rf_fit)
-  pred_rffit <- predict(rf_fit, newdata=test)
-  bag_errors[i] <- mean(pred_rffit!=test$earnings)
+  pred_rffit <- predict(rf_fit, newdata = test)
+  bag_errors[i] <- mean(pred_rffit != test$earnings)
 }
 bag4_err <- mean(bag_errors)
 
@@ -597,22 +596,22 @@ bag4_err <- mean(bag_errors)
 rf_errors <- rep(NA, 9)
 for (mtr in 2:10) {
   traininds <- sample(1:nrow(classifydf), nrow(classifydf)/10)
-  train <- classifydf[traininds,]
-  test <- classifydf[(-traininds),]
-  rf_fit <- randomForest(earnings~., data = train, importance = TRUE, mtry=mtr)
-  pred_rffit <- predict(rf_fit, newdata=test)
-  rf_errors[mtr-1] <- mean(pred_rffit!=test$earnings)
+  train <- classifydf[traininds, ]
+  test <- classifydf[(-traininds), ]
+  rf_fit <- randomForest(earnings~., data = train, importance = TRUE, mtry = mtr)
+  pred_rffit <- predict(rf_fit, newdata = test)
+  rf_errors[mtr-1] <- mean(pred_rffit != test$earnings)
 }
-lowest_mtry <- which(rf_errors==min(rf_errors))
+lowest_mtry <- which(rf_errors == min(rf_errors))
 # Now use the lowest value of number of trees in ten-fold cross validation:
 rf_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(classifydf), nrow(classifydf)/10)
-  train <- classifydf[traininds,]
-  test <- classifydf[(-traininds),]
-  rf_fit <- randomForest(earnings~., data = train, importance = TRUE, mtry=lowest_mtry)
-  pred_rffit <- predict(rf_fit, newdata=test)
-  rf_errors[i] <- mean(pred_rffit!=test$earnings)
+  train <- classifydf[traininds, ]
+  test <- classifydf[(-traininds), ]
+  rf_fit <- randomForest(earnings~., data = train, importance = TRUE, mtry = lowest_mtry)
+  pred_rffit <- predict(rf_fit, newdata = test)
+  rf_errors[i] <- mean(pred_rffit != test$earnings)
 }
 rf4_err <- mean(rf_errors)
 
@@ -631,7 +630,7 @@ ab2_error <- adaboost_fit2$error
 
 # Now the four-class case
 attach(classifydf)
-adaboost_fit4 <- boosting.cv(earnings~., data = classifydf, mfinal=20, v=10)
+adaboost_fit4 <- boosting.cv(earnings~., data = classifydf, mfinal = 20, v = 10)
 ab4_error <- adaboost_fit4$error
 
 # Lastly, print two data frames showing the results on the screen.
@@ -642,7 +641,7 @@ Regression_Results <- data.frame(
   )
 Classification_Results <- data.frame(
   Technique = c("naive Bayes", "LDA", "QDA", "bagging", "random forest", "Adaboost"),
-  Error_rate_2_classes = c(nb2_err ,lda2_err, qda2_err, bag2_err, rf2_err, ab2_error),
+  Error_rate_2_classes = c(nb2_err, lda2_err, qda2_err, bag2_err, rf2_err, ab2_error),
   Error_rate_4_classes = c(nb4_err, lda4_err, qda4_err, bag4_err, rf4_err, ab4_error)
   )
 print(Regression_Results, right = FALSE, row.names = FALSE)
@@ -672,7 +671,7 @@ classifyimpute <- data.frame(earnings = partialdf$median_earnings*0.001,
                        lit = partialdf$percent_lit
                        )
 quarts <- unname(quantile(classifyimpute$earnings, na.rm = TRUE))
-hist(classifyimpute$earnings, col=2, xlab = "Earnings (thousands of dollars)", main = "Histogram of median earnings", breaks = seq(0,140,5))
+hist(classifyimpute$earnings, col = 2, xlab = "Earnings (thousands of dollars)", main = "Histogram of median earnings", breaks = seq(0,140,5))
 classifyimpute$earnings <- cut(classifyimpute$earnings, c(0, quarts[2], quarts[3], quarts[4], 200.0), labels = c("1", "2", "3", "4"))
 
 # Now remove missing values for earnings, the dependent variable
@@ -684,7 +683,7 @@ predictors <- c("admit", "satmath", "satverbal", "tuitionin", "tuitionout", "stu
 
 for (p in predictors) {
   for (c in classes) {
-    classifyimpute[is.na(classifyimpute[,p]) & classifyimpute$earnings==c, p] <- mean(classifyimpute[!is.na(classifyimpute[,p]) & classifyimpute$earnings==c, p])
+    classifyimpute[is.na(classifyimpute[,p]) & classifyimpute$earnings == c, p] <- mean(classifyimpute[!is.na(classifyimpute[,p]) & classifyimpute$earnings == c, p])
   }
 }
 colSums(is.na(classifyimpute))
@@ -712,7 +711,7 @@ classes <- c("1", "2")
 
 for (p in predictors) {
   for (c in classes) {
-    twoclassimpute[is.na(twoclassimpute[,p]) & twoclassimpute$earnings==c, p] <- mean(twoclassimpute[!is.na(twoclassimpute[,p]) & twoclassimpute$earnings==c, p])
+    twoclassimpute[is.na(twoclassimpute[,p]) & twoclassimpute$earnings == c, p] <- mean(twoclassimpute[!is.na(twoclassimpute[,p]) & twoclassimpute$earnings == c, p])
   }
 }
 colSums(is.na(twoclassimpute))
@@ -762,12 +761,12 @@ summary(lm_fit)
 
 ## Next use 10-fold cross validation to estimate the test MSE
 glm_cvfit <- glm(earnings~., data=regressimpute)
-glm_err <- cv.glm(regressimpute, glm_cvfit, K=10)
+glm_err <- cv.glm(regressimpute, glm_cvfit, K = 10)
 lm_err <- glm_err$delta[1]
 
 #Large error, so try a smaller model:
 glm_cvfit_sm <- glm(earnings~pricecombined+admit, data = regressimpute)
-glm_err_sm <- cv.glm(regressimpute, glm_cvfit_sm, K=10)
+glm_err_sm <- cv.glm(regressimpute, glm_cvfit_sm, K = 10)
 glm_err_sm$delta[1]
 
 #Smaller model does not outperform the larger one.  
@@ -778,21 +777,21 @@ cat("Technique: Lasso")
 library(glmnet)
 x <- model.matrix(earnings~., data = regressimpute)[,-1]
 y <- earnings
-grid <- 10^seq(10, -10 , length =1000)
-lasso.mod <- glmnet(x,y,alpha=1, lambda=grid)
+grid <- 10^seq(10, -10, length = 1000)
+lasso.mod <- glmnet(x, y, alpha = 1, lambda = grid)
 set.seed(1)
 train <- sample(1:nrow(x), nrow(x)/2)
 test <- (-train)
 y.test <- y[test]
-cv.out <- cv.glmnet(x[train,], y[train], alpha=1)
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 1)
 plot(cv.out)
 bestlam <- cv.out$lambda.min
-lasso_pred <- predict(lasso.mod, s=bestlam, newx = x[test,])
+lasso_pred <- predict(lasso.mod, s  = bestlam, newx = x[test, ])
 lasso_err <- mean((lasso_pred - y.test)^2)
 
 # Now get the predictors that lasso reduced to 0:
 out <- glmnet(x,y,alpha=1, lambda = grid)
-lasso_coef <- predict(out, type="coefficients", s=bestlam)
+lasso_coef <- predict(out, type = "coefficients", s = bestlam)
 lasso_coef
 
 
@@ -801,37 +800,37 @@ cat("Elasticnet Regression")
 library(glmnet)
 x <- model.matrix(earnings~., data = regressimpute)[,-1]
 y <- earnings
-grid <- 10^seq(10, -10 , length =1000)
-lasso.mod <- glmnet(x,y,alpha=0.5, lambda=grid)
+grid <- 10^seq(10, -10, length = 1000)
+lasso.mod <- glmnet(x,y,alpha = 0.5, lambda = grid)
 set.seed(1)
 train <- sample(1:nrow(x), nrow(x)/2)
 test <- (-train)
 y.test <- y[test]
-cv.out <- cv.glmnet(x[train,], y[train], alpha=1)
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 1)
 plot(cv.out)
 bestlam <- cv.out$lambda.min
-lasso_pred <- predict(lasso.mod, s=bestlam, newx = x[test,])
+lasso_pred <- predict(lasso.mod, s = bestlam, newx = x[test, ])
 elastic_err <- mean((lasso_pred - y.test)^2)
 
 # Now get the predictors that elasticnet reduced to 0:
 out <- glmnet(x,y,alpha=0.5, lambda = grid)
-lasso_coef <- predict(out, type="coefficients", s=bestlam)
+lasso_coef <- predict(out, type = "coefficients", s = bestlam)
 lasso_coef
 
 cat("Ridge regression")
 ## Ridge regression
 x <- model.matrix(earnings~., data = regressimpute)[,-1]
 y <- earnings
-grid <- 10^seq(10, -10 , length =1000)
-ridge.mod <- glmnet(x,y,alpha=0, lambda=grid)
+grid <- 10^seq(10, -10, length = 1000)
+ridge.mod <- glmnet(x,y,alpha = 0, lambda = grid)
 set.seed(1)
 train <- sample(1:nrow(x), nrow(x)/2)
 test <- (-train)
 y.test <- y[test]
-cv.out <- cv.glmnet(x[train,], y[train], alpha=1)
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 1)
 plot(cv.out)
 bestlam <- cv.out$lambda.min
-ridge_pred <- predict(ridge.mod, s=bestlam, newx = x[test,])
+ridge_pred <- predict(ridge.mod, s = bestlam, newx = x[test, ])
 ridge_err <- mean((ridge_pred - y.test)^2)
 
 cat("Polynomial Regresson, squares of each term")
@@ -862,7 +861,7 @@ pglm_fit <-  glm(earnings~poly(admit, 2)+
                 poly(math, 2)+
                 poly(business, 2)+
                 poly(lit, 2), data = regressimpute)
-pglm_error <- cv.glm(regressimpute, pglm_fit, K=10)
+pglm_error <- cv.glm(regressimpute, pglm_fit, K = 10)
 pglm_err <- pglm_error$delta[1]
 
 # Now try up to the cubic terms of each independent variable
@@ -892,7 +891,7 @@ pglm_fit <- glm(earnings~poly(admit, 3)+
                 poly(math, 3)+
                 poly(business, 3)+
                 poly(lit, 3), data = regressimpute)
-pglmcub_error <- cv.glm(regressimpute, pglm_fit, K=10)
+pglmcub_error <- cv.glm(regressimpute, pglm_fit, K = 10)
 pglmcub_err <- pglmcub_error$delta[1]
 
 
@@ -906,7 +905,7 @@ glm_fit <- glm(earnings~., data = twoclassimpute, family = binomial)
 summary(glm_fit)
 glm_probs <- predict(glm_fit, type = "response")
 glm_pred <- rep("1", dim(twoclassimpute)[1])
-glm_pred[glm_probs>0.5]="2"
+glm_pred[glm_probs>0.5] <- "2"
 table(glm_pred, earnings)
 mean(glm_pred!=earnings)  #Training error rate.
 
@@ -915,13 +914,13 @@ logreg_err_rates <- rep(NA, 10)
 set.seed(100)
 for (i in 1:10) {
   train_logreg <- sample(1:nrow(twoclassimpute), nrow(twoclassimpute)/2)
-  train_logreg_set <- twoclassimpute[train_logreg,]
-  test_logreg_set <- twoclassimpute[(-train_logreg),]
+  train_logreg_set <- twoclassimpute[train_logreg, ]
+  test_logreg_set <- twoclassimpute[(-train_logreg), ]
   glm_fit <- glm(earnings~., data = train_logreg_set, family = binomial)
-  glm_probs <- predict(glm_fit, test_logreg_set, type="response")
+  glm_probs <- predict(glm_fit, test_logreg_set, type = "response")
   glm_pred <- rep("1", dim(test_logreg_set)[1])
   glm_pred[glm_probs>0.5] <- "2"
-  logreg_err_rates[i] <- mean(glm_pred!=test_logreg_set$earnings)
+  logreg_err_rates[i] <- mean(glm_pred != test_logreg_set$earnings)
 }
 logreg_err <- mean(logreg_err_rates)
 
@@ -930,11 +929,11 @@ cat("Naive Bayes classification")
 nb_err_rates <- rep(NA,10)
 for (i in 1:10) {
   train_logreg <- sample(1:nrow(twoclassimpute), nrow(twoclassimpute)/2)
-  train_logreg_set <- twoclassimpute[train_logreg,]
-  test_logreg_set <- twoclassimpute[(-train_logreg),]
+  train_logreg_set <- twoclassimpute[train_logreg, ]
+  test_logreg_set <- twoclassimpute[(-train_logreg), ]
   glm_fit <- naiveBayes(earnings~., data = train_logreg_set)
-  glm_predics <- predict(glm_fit, test_logreg_set, type="class")
-  nb_err_rates[i] <- mean(glm_predics!=test_logreg_set$earnings)
+  glm_predics <- predict(glm_fit, test_logreg_set, type = "class")
+  nb_err_rates[i] <- mean(glm_predics != test_logreg_set$earnings)
 }
 nb2_err <- mean(nb_err_rates)
 
@@ -944,11 +943,11 @@ attach(classifyimpute, warn.conflicts = FALSE)
 nb_err_rates4 <- rep(NA,10)
 for (i in 1:10) {
   train_logreg4 <- sample(1:nrow(classifyimpute), nrow(classifyimpute)/2)
-  train_logreg_set4 <- classifyimpute[train_logreg4,]
-  test_logreg_set4 <- classifyimpute[(-train_logreg4),]
+  train_logreg_set4 <- classifyimpute[train_logreg4, ]
+  test_logreg_set4 <- classifyimpute[(-train_logreg4), ]
   glm_fit4 <- naiveBayes(earnings~., data = train_logreg_set4)
   glm_predics4 <- predict(glm_fit4, test_logreg_set4, type="class")
-  nb_err_rates4[i] <- mean(glm_predics4!=test_logreg_set4$earnings)
+  nb_err_rates4[i] <- mean(glm_predics4 != test_logreg_set4$earnings)
 }
 nb4_err <- mean(nb_err_rates4)
 nb4_err
@@ -968,12 +967,12 @@ attach(twoclassimpute, warn.conflicts = FALSE)
 lda_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(twoclassimpute), nrow(twoclassimpute)/10)
-  train <- twoclassimpute[traininds,]
-  test <- twoclassimpute[(-traininds),]
+  train <- twoclassimpute[traininds, ]
+  test <- twoclassimpute[(-traininds), ]
   lda_fit <- lda(earnings~., data = train)
   lda_pred <- predict(lda_fit, test)
   lda_results <- lda_pred$class
-  lda_errors[i] <- mean(lda_results!=test$earnings)
+  lda_errors[i] <- mean(lda_results != test$earnings)
 }
 lda2_err <- mean(lda_errors)
 
@@ -981,12 +980,12 @@ lda2_err <- mean(lda_errors)
 qda_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(twoclassimpute), nrow(twoclassimpute)/10)
-  train <- twoclassimpute[traininds,]
-  test <- twoclassimpute[(-traininds),]
+  train <- twoclassimpute[traininds, ]
+  test <- twoclassimpute[(-traininds), ]
   qda_fit <- qda(earnings~., data = train)
   qda_pred <- predict(qda_fit, test)
   qda_results <- qda_pred$class
-  qda_errors[i] <- mean(qda_results!=test$earnings)
+  qda_errors[i] <- mean(qda_results != test$earnings)
 }
 qda2_err <- mean(qda_errors)
 
@@ -997,24 +996,24 @@ attach(classifyimpute, warn.conflicts = FALSE)
 lda_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(classifyimpute), nrow(classifyimpute)/10)
-  train <- classifyimpute[traininds,]
-  test <- classifyimpute[(-traininds),]
+  train <- classifyimpute[traininds, ]
+  test <- classifyimpute[(-traininds), ]
   lda_fit <- lda(earnings~., data = train)
   lda_pred <- predict(lda_fit, test)
   lda_results <- lda_pred$class
-  lda_errors[i] <- mean(lda_results!=test$earnings)
+  lda_errors[i] <- mean(lda_results != test$earnings)
 }
 lda4_err <- mean(lda_errors)
 
 qda_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(classifyimpute), nrow(classifyimpute)/10)
-  train <- classifyimpute[traininds,]
-  test <- classifyimpute[(-traininds),]
+  train <- classifyimpute[traininds, ]
+  test <- classifyimpute[(-traininds), ]
   qda_fit <- qda(earnings~., data = train)
   qda_pred <- predict(qda_fit, test)
   qda_results <- qda_pred$class
-  qda_errors[i] <- mean(qda_results!=test$earnings)
+  qda_errors[i] <- mean(qda_results != test$earnings)
 }
 qda4_err <- mean(qda_errors)
 
@@ -1027,13 +1026,13 @@ attach(twoclassimpute, warn.conflicts = FALSE)
 bag_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(twoclassimpute), nrow(twoclassimpute)/10)
-  train <- twoclassimpute[traininds,]
-  test <- twoclassimpute[(-traininds),]
+  train <- twoclassimpute[traininds, ]
+  test <- twoclassimpute[(-traininds), ]
   #bagging
   rf_fit <- randomForest(earnings~., data = train, importance = TRUE)
   importance(rf_fit)
   pred_rffit <- predict(rf_fit, newdata=test)
-  bag_errors[i] <- mean(pred_rffit!=test$earnings)
+  bag_errors[i] <- mean(pred_rffit != test$earnings)
 }
 bag2_err = mean(bag_errors)
 
@@ -1041,11 +1040,11 @@ bag2_err = mean(bag_errors)
 rf_errors <- rep(NA, 9)
 for (mtr in 2:10) {
   traininds <- sample(1:nrow(twoclassimpute), nrow(twoclassimpute)/10)
-  train <- twoclassimpute[traininds,]
-  test <- twoclassimpute[(-traininds),]
-  rf_fit <- randomForest(earnings~., data = train, importance = TRUE, mtry=mtr)
+  train <- twoclassimpute[traininds, ]
+  test <- twoclassimpute[(-traininds), ]
+  rf_fit <- randomForest(earnings~., data = train, importance = TRUE, mtry = mtr)
   pred_rffit <- predict(rf_fit, newdata=test)
-  rf_errors[mtr-1] <- mean(pred_rffit!=test$earnings)
+  rf_errors[mtr-1] <- mean(pred_rffit != test$earnings)
 }
 
 lowest_mtry <- which(rf_errors==min(rf_errors))
@@ -1054,11 +1053,11 @@ lowest_mtry <- which(rf_errors==min(rf_errors))
 rf_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(twoclassimpute), nrow(twoclassimpute)/10)
-  train <- twoclassimpute[traininds,]
-  test <- twoclassimpute[(-traininds),]
-  rf_fit <- randomForest(earnings~., data = train, importance = TRUE, mtry=lowest_mtry)
-  pred_rffit <- predict(rf_fit, newdata=test)
-  rf_errors[i] <- mean(pred_rffit!=test$earnings)
+  train <- twoclassimpute[traininds, ]
+  test <- twoclassimpute[(-traininds), ]
+  rf_fit <- randomForest(earnings~., data = train, importance = TRUE, mtry = lowest_mtry)
+  pred_rffit <- predict(rf_fit, newdata = test)
+  rf_errors[i] <- mean(pred_rffit != test$earnings)
 }
 rf2_err <- mean(rf_errors)
 
@@ -1072,11 +1071,11 @@ attach(classifyimpute, warn.conflicts = FALSE)
 bag_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(classifyimpute), nrow(classifyimpute)/10)
-  train <- classifyimpute[traininds,]
-  test <- classifyimpute[(-traininds),]
+  train <- classifyimpute[traininds, ]
+  test <- classifyimpute[(-traininds), ]
   rf_fit <- randomForest(earnings~., data = train, importance = TRUE)
-  pred_rffit <- predict(rf_fit, newdata=test)
-  bag_errors[i] <- mean(pred_rffit!=test$earnings)
+  pred_rffit <- predict(rf_fit, newdata = test)
+  bag_errors[i] <- mean(pred_rffit != test$earnings)
 }
 bag4_err <- mean(bag_errors)
 
@@ -1084,12 +1083,12 @@ bag4_err <- mean(bag_errors)
 rf_errors <- rep(NA, 9)
 for (mtr in 2:10) {
   traininds <- sample(1:nrow(classifyimpute), nrow(classifyimpute)/10)
-  train <- classifyimpute[traininds,]
-  test <- classifyimpute[(-traininds),]
+  train <- classifyimpute[traininds, ]
+  test <- classifyimpute[(-traininds), ]
   rf_fit <- randomForest(earnings~., data = train, importance = TRUE, mtry=mtr)
   #importance(rf_fit)
-  pred_rffit <- predict(rf_fit, newdata=test)
-  rf_errors[mtr-1] <- mean(pred_rffit!=test$earnings)
+  pred_rffit <- predict(rf_fit, newdata = test)
+  rf_errors[mtr-1] <- mean(pred_rffit != test$earnings)
 }
 lowest_mtry <- which(rf_errors==min(rf_errors))
 
@@ -1097,11 +1096,11 @@ lowest_mtry <- which(rf_errors==min(rf_errors))
 rf_errors <- rep(NA, 10)
 for (i in 1:10) {
   traininds <- sample(1:nrow(classifyimpute), nrow(classifyimpute)/10)
-  train <- classifyimpute[traininds,]
-  test <- classifyimpute[(-traininds),]
-  rf_fit <- randomForest(earnings~., data = train, importance = TRUE, mtry=lowest_mtry)
-  pred_rffit <- predict(rf_fit, newdata=test)
-  rf_errors[i] <- mean(pred_rffit!=test$earnings)
+  train <- classifyimpute[traininds, ]
+  test <- classifyimpute[(-traininds), ]
+  rf_fit <- randomForest(earnings~., data = train, importance = TRUE, mtry = lowest_mtry)
+  pred_rffit <- predict(rf_fit, newdata = test)
+  rf_errors[i] <- mean(pred_rffit != test$earnings)
 }
 rf4_err <- mean(rf_errors)
 
@@ -1115,12 +1114,12 @@ cat("Adaboost")
 library(adabag)
 
 attach(twoclassimpute)
-adaboost_fit2 <- boosting.cv(earnings~., data = twoclassimpute, mfinal=20, v=10)
+adaboost_fit2 <- boosting.cv(earnings~., data = twoclassimpute, mfinal = 20, v = 10)
 ab2_error_impute <- adaboost_fit2$error
 
 # Now the four-class case
 attach(classifyimpute)
-adaboost_fit4 <- boosting.cv(earnings~., data = classifyimpute, mfinal=20, v=10)
+adaboost_fit4 <- boosting.cv(earnings~., data = classifyimpute, mfinal = 20, v = 10)
 ab4_error_impute <- adaboost_fit4$error
 
 # Lastly, print two data frames showing the results on the screen.
@@ -1131,7 +1130,7 @@ Regression_Results_impute = data.frame(
   )
 Classification_Results_impute = data.frame(
   Technique <- c("naive Bayes", "LDA", "QDA", "bagging", "random forest", "Adaboost"),
-  Error_rate_2_classes <- c(nb2_err ,lda2_err, qda2_err, bag2_err, rf2_err, ab2_error_impute),
+  Error_rate_2_classes <- c(nb2_err, lda2_err, qda2_err, bag2_err, rf2_err, ab2_error_impute),
   Error_rate_4_classes <- c(nb4_err, lda4_err, qda4_err, bag4_err, rf4_err, ab4_error_impute)
   )
 print(Regression_Results_impute, right = FALSE, row.names = FALSE)
